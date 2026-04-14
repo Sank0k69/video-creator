@@ -1,12 +1,12 @@
 """
-Content Calendar Widget --- schedule and visualize content production.
+Content Calendar Widget — schedule and visualize content production.
 Shows: planned content, posted content, 30-day streak progress.
 """
 from __future__ import annotations
 from imperal_sdk.ui import (
-    Page, Section, Row, Column, Stack,
+    Stack, Row, Column,
     Header, Text, Stat, Stats, Badge, Divider,
-    DataTable, DataColumn, Button, Card,
+    Button, Card,
     Timeline, Progress,
     Call,
 )
@@ -23,7 +23,7 @@ def register_calendar(ext):
 
         # Calculate streak (simplified)
         total_created = len(scripts)
-        streak_progress = min(total_created / 30 * 100, 100)  # 30-day challenge
+        streak_progress = min(total_created / 30 * 100, 100) if total_created else 0
 
         return Stack(children=[
             Header(text="Content Calendar", level=3),
@@ -33,9 +33,9 @@ def register_calendar(ext):
                 title="30-Day Content Challenge",
                 content=Stack(children=[
                     Progress(
-                        value=streak_progress,
+                        value=int(streak_progress),
                         label=f"{total_created}/30 pieces created",
-                        variant="bar" if streak_progress >= 100 else "blue",
+                        variant="bar",
                     ),
                     Text(
                         content="Protocol: 1 piece per day, 30 days straight, no breaks."
@@ -48,17 +48,12 @@ def register_calendar(ext):
             Divider(),
 
             # Content timeline
-            Section(
-                title="Recent Activity",
-                children=[
-                    Timeline(
-                        items=[
-                            {"label": script_id, "status": "completed"}
-                            for script_id in scripts[:5]
-                        ] if scripts else [
-                            {"label": "No content created yet", "status": "pending"}
-                        ],
-                    ),
+            Timeline(
+                items=[
+                    {"label": script_id, "status": "completed"}
+                    for script_id in scripts[:5]
+                ] if scripts else [
+                    {"label": "No content created yet", "status": "pending"}
                 ],
             ),
 
@@ -73,6 +68,7 @@ def register_calendar(ext):
             Button(
                 label="Create Today's Content",
                 variant="primary",
+                full_width=True,
                 on_click=Call(function="quick_script"),
             ),
         ])

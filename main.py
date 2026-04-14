@@ -46,11 +46,13 @@ ext._tools["video_creator"].scopes = [
 ]
 
 # --- DUI Panels ---
+# Left slot: navigation sidebar
+# Right slot: dashboard workspace + settings (contextual)
 
-register_dashboard(ext)
-register_settings(ext)
-register_calendar(ext)
-register_sidebar(ext)
+register_sidebar(ext)      # slot="left"  — navigation hub
+register_dashboard(ext)    # slot="right" — main workspace
+register_settings(ext)     # slot="right" — settings (navigated from sidebar)
+register_calendar(ext)     # widget       — content calendar
 
 
 # --- Module registry ---
