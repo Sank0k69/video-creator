@@ -1,15 +1,39 @@
 """
-Settings Panel — user configuration, credentials, module toggles.
-Users can: set niche, add platform API keys, toggle modules, configure quality gates.
+Settings Panel -- full configuration for Video Creator extension.
+Renders in the left slot of Imperal Cloud OS.
+
+Sections: Profile, HeyGen, Figma, Platforms, Module Toggles, Quality Gates.
 """
 from __future__ import annotations
+
 from imperal_sdk.ui import (
     Page, Section, Row, Column, Stack,
-    Header, Text, Divider, Alert,
-    Form, Input, TextArea, Toggle, Select, TagInput, FileUpload,
-    Button,
+    Header, Text, Divider, Alert, Badge, Icon,
+    Form, Input, TextArea, Toggle, Select, TagInput, Slider, FileUpload,
+    Button, Card,
     Call,
 )
+
+
+# All extension modules with display names
+ALL_MODULE_NAMES = {
+    "ideation": {"label": "Ideation", "icon": "lightbulb", "desc": "Generate video ideas using Perfect Idea Zone"},
+    "framing": {"label": "Framing", "icon": "frame", "desc": "Transform ideas into directed video concepts"},
+    "packaging": {"label": "Packaging", "icon": "package", "desc": "Title + thumbnail strategy"},
+    "hooks": {"label": "Hooks", "icon": "anchor", "desc": "Psychological hook generation"},
+    "scripting": {"label": "Scripting", "icon": "file-text", "desc": "Full script writing (Hook-Body-CTA)"},
+    "pcm": {"label": "PCM Analysis", "icon": "brain", "desc": "Personality type coverage analysis"},
+    "captions": {"label": "Captions", "icon": "message-square", "desc": "Social media caption generation"},
+    "cta": {"label": "CTA", "icon": "mouse-pointer", "desc": "Call-to-action generation"},
+    "publishing": {"label": "Publishing", "icon": "send", "desc": "Pre-publish checklist"},
+    "iteration": {"label": "Iteration", "icon": "repeat", "desc": "Performance tracking and optimization"},
+    "market_research": {"label": "Market Research", "icon": "bar-chart-2", "desc": "GSB analysis, avatars, trajectory"},
+    "funnel_copy": {"label": "Funnel Copy", "icon": "filter", "desc": "VSL, page copy, presentations"},
+    "email_sequences": {"label": "Email Sequences", "icon": "mail", "desc": "Promo, nurture, webinar sequences"},
+    "sales": {"label": "Sales", "icon": "dollar-sign", "desc": "Sales scripts, objection handling, offers"},
+    "launch": {"label": "Launch", "icon": "rocket", "desc": "Pre-launch plans, 28-day roadmaps"},
+    "video_production": {"label": "Video Production", "icon": "video", "desc": "HeyGen avatar video creation"},
+}
 
 
 def register_settings(ext):
@@ -20,191 +44,361 @@ def register_settings(ext):
         config = ctx.config
 
         return Page(
-            title="Video Creator Settings",
+            title="Settings",
             children=[
                 # --- Profile ---
-                Section(
-                    title="Your Profile",
-                    description="Tell us about your content niche and audience",
-                    children=[
-                        Form(
-                            id="profile_form",
-                            on_submit=Call(function="_save_profile"),
-                            children=[
-                                Input(
-                                    name="niche",
-                                    label="Your Niche",
-                                    placeholder="e.g., Web hosting, SaaS, fitness coaching",
-                                    value=config.get("niche", ""),
-                                ),
-                                TextArea(
-                                    name="target_audience",
-                                    label="Target Audience",
-                                    placeholder="Describe your ideal viewer...",
-                                    value=config.get("target_audience", ""),
-                                ),
-                                TagInput(
-                                    name="brand_voice",
-                                    label="Brand Voice Keywords",
-                                    placeholder="Add keywords...",
-                                    value=config.get("brand_voice", []),
-                                ),
-                                Select(
-                                    name="language",
-                                    label="Content Language",
-                                    options=[
-                                        {"value": "en", "label": "English"},
-                                        {"value": "es", "label": "Spanish"},
-                                        {"value": "ru", "label": "Russian"},
-                                        {"value": "pt", "label": "Portuguese"},
-                                        {"value": "de", "label": "German"},
-                                        {"value": "fr", "label": "French"},
-                                    ],
-                                    value=config.get("language", "en"),
-                                ),
-                                Button(label="Save Profile", type="submit", variant="primary"),
-                            ],
-                        ),
-                    ],
-                ),
-
+                _build_profile_section(config),
                 Divider(),
 
-                # --- Platform Credentials ---
-                Section(
-                    title="Platform Connections",
-                    description="Add API keys for your social media platforms",
-                    children=[
-                        _platform_form("youtube", "YouTube", config),
-                        _platform_form("tiktok", "TikTok", config),
-                        _platform_form("instagram", "Instagram", config),
-                        _platform_form("linkedin", "LinkedIn", config),
-                        Divider(),
-                        Alert(
-                            type="info",
-                            message="API keys are stored securely in your personal token wallet. Never shared with other users or extensions.",
-                        ),
-                        Text(text="Or upload a credentials file:"),
-                        FileUpload(
-                            name="credentials_file",
-                            label="Upload credentials JSON",
-                            accept=".json",
-                            on_upload=Call(function="_import_credentials"),
-                        ),
-                    ],
-                ),
-
+                # --- HeyGen Connection ---
+                _build_heygen_section(config),
                 Divider(),
 
-                # --- Content Settings ---
-                Section(
-                    title="Content Settings",
-                    children=[
-                        Form(
-                            id="content_form",
-                            on_submit=Call(function="_save_content_settings"),
-                            children=[
-                                Input(
-                                    name="default_post_time",
-                                    label="Default Post Time",
-                                    placeholder="20:00",
-                                    value=config.get("content", {}).get("default_post_time", "20:00"),
-                                ),
-                                Select(
-                                    name="caption_style",
-                                    label="Default Caption Style",
-                                    options=[
-                                        {"value": "curiosity", "label": "Curiosity Loops"},
-                                        {"value": "pcm", "label": "PCM Targeted"},
-                                        {"value": "mixed", "label": "Mixed"},
-                                    ],
-                                    value=config.get("content", {}).get("caption_style", "curiosity"),
-                                ),
-                                Button(label="Save Content Settings", type="submit", variant="primary"),
-                            ],
-                        ),
-                    ],
-                ),
-
+                # --- Figma ---
+                _build_figma_section(config),
                 Divider(),
 
-                # --- Quality Gates ---
-                Section(
-                    title="Quality Gates",
-                    children=[
-                        Form(
-                            id="quality_form",
-                            on_submit=Call(function="_save_quality_settings"),
-                            children=[
-                                Select(
-                                    name="pcm_min_types",
-                                    label="Minimum PCM Types per Script",
-                                    options=[
-                                        {"value": "2", "label": "2 (lenient)"},
-                                        {"value": "3", "label": "3 (recommended)"},
-                                        {"value": "4", "label": "4 (strict)"},
-                                        {"value": "5", "label": "5 (very strict)"},
-                                    ],
-                                    value=str(config.get("quality", {}).get("pcm_min_types", 3)),
-                                ),
-                                Input(
-                                    name="title_max_chars",
-                                    label="Max Title Length",
-                                    value=str(config.get("quality", {}).get("title_max_chars", 55)),
-                                ),
-                                Button(label="Save Quality Gates", type="submit", variant="primary"),
-                            ],
-                        ),
-                    ],
-                ),
-
+                # --- Platforms ---
+                _build_platforms_section(config),
                 Divider(),
 
                 # --- Module Toggles ---
-                Section(
-                    title="Module Toggles",
-                    description="Enable/disable individual modules",
-                    children=[
-                        _module_toggles(config),
-                    ],
-                ),
+                _build_modules_section(config),
+                Divider(),
+
+                # --- Quality Gates ---
+                _build_quality_section(config),
             ],
         )
 
     return settings_panel
 
 
-def _platform_form(platform_id: str, platform_name: str, config: dict):
-    """Build a platform credentials form."""
-    platforms = config.get("platforms", {})
-    platform_cfg = platforms.get(platform_id, {})
-    return Row(children=[
-        Toggle(
-            name=f"platform_{platform_id}_enabled",
-            label=platform_name,
-            value=platform_cfg.get("enabled", False),
-        ),
-        Input(
-            name=f"platform_{platform_id}_api_key",
-            label=f"{platform_name} API Key",
-            placeholder="Enter API key...",
-            value=platform_cfg.get("api_key", ""),
-            type="password",
-        ),
-    ])
+# =====================================================
+# SECTION BUILDERS
+# =====================================================
+
+def _build_profile_section(config):
+    """Profile: niche, audience, brand voice, language."""
+    return Section(
+        title="Profile",
+        description="Your content niche and target audience",
+        icon="user",
+        children=[
+            Form(
+                id="profile_form",
+                on_submit=Call(function="_save_profile"),
+                children=[
+                    Input(
+                        name="niche",
+                        label="Your Niche",
+                        placeholder="e.g., Web hosting, SaaS, fitness coaching",
+                        value=config.get("niche", ""),
+                    ),
+                    TextArea(
+                        name="target_audience",
+                        label="Target Audience",
+                        placeholder="Describe your ideal viewer -- demographics, pain points, aspirations...",
+                        value=config.get("target_audience", ""),
+                        rows=3,
+                    ),
+                    TagInput(
+                        name="brand_voice",
+                        label="Brand Voice",
+                        placeholder="Add voice keywords (e.g., confident, casual, data-driven)...",
+                        value=config.get("brand_voice", []),
+                    ),
+                    Select(
+                        name="language",
+                        label="Content Language",
+                        options=[
+                            {"value": "en", "label": "English"},
+                            {"value": "es", "label": "Spanish"},
+                            {"value": "ru", "label": "Russian"},
+                            {"value": "pt", "label": "Portuguese"},
+                            {"value": "de", "label": "German"},
+                            {"value": "fr", "label": "French"},
+                            {"value": "zh", "label": "Chinese"},
+                            {"value": "ja", "label": "Japanese"},
+                            {"value": "ko", "label": "Korean"},
+                            {"value": "ar", "label": "Arabic"},
+                        ],
+                        value=config.get("language", "en"),
+                    ),
+                    Button(label="Save Profile", type="submit", variant="primary", icon="save"),
+                ],
+            ),
+        ],
+    )
 
 
-def _module_toggles(config: dict):
-    """Build module toggle switches."""
-    modules_cfg = config.get("modules", {})
-    toggles = []
-    for name in ["ideation", "framing", "packaging", "hooks", "scripting",
-                  "pcm", "captions", "cta", "publishing", "iteration"]:
-        toggles.append(
-            Toggle(
-                name=f"module_{name}",
-                label=name.capitalize(),
-                value=modules_cfg.get(name, True),
+def _build_heygen_section(config):
+    """HeyGen: connection method, API key, status."""
+    heygen_key = config.get("heygen_api_key", "")
+    is_connected = bool(heygen_key)
+
+    return Section(
+        title="HeyGen",
+        description="Video generation service connection",
+        icon="video",
+        children=[
+            Row(children=[
+                Badge(
+                    text="Connected" if is_connected else "Not Connected",
+                    color="green" if is_connected else "red",
+                ),
+                Text(text="API key is set" if is_connected else "Add your HeyGen API key to enable video generation"),
+            ]),
+            Form(
+                id="heygen_form",
+                on_submit=Call(function="_save_profile"),
+                children=[
+                    Select(
+                        name="heygen_method",
+                        label="Connection Method",
+                        options=[
+                            {"value": "api_key", "label": "API Key (direct)"},
+                            {"value": "mcp", "label": "MCP Server (OAuth)"},
+                        ],
+                        value="api_key" if heygen_key else "mcp",
+                    ),
+                    Input(
+                        name="heygen_api_key",
+                        label="HeyGen API Key",
+                        placeholder="Enter your HeyGen API key...",
+                        value=heygen_key,
+                        type="password",
+                    ),
+                    Button(label="Save HeyGen Settings", type="submit", variant="primary", icon="save"),
+                ],
+            ),
+            Alert(
+                type="info",
+                message="HeyGen API key is used for avatar video generation. Get yours at app.heygen.com/settings.",
+            ),
+        ],
+    )
+
+
+def _build_figma_section(config):
+    """Figma: token, file key."""
+    figma_token = config.get("figma_token", "")
+    figma_file_key = config.get("figma_file_key", "")
+    is_connected = bool(figma_token)
+
+    return Section(
+        title="Figma",
+        description="Design asset integration",
+        icon="figma",
+        children=[
+            Row(children=[
+                Badge(
+                    text="Connected" if is_connected else "Not Connected",
+                    color="green" if is_connected else "gray",
+                ),
+                Text(text="Figma token is configured" if is_connected else "Add your Figma personal access token"),
+            ]),
+            Form(
+                id="figma_form",
+                on_submit=Call(function="_save_profile"),
+                children=[
+                    Input(
+                        name="figma_token",
+                        label="Figma Access Token",
+                        placeholder="Enter your Figma personal access token...",
+                        value=figma_token,
+                        type="password",
+                    ),
+                    Input(
+                        name="figma_file_key",
+                        label="Default File Key",
+                        placeholder="e.g., abc123xyz (from Figma URL)",
+                        value=figma_file_key,
+                    ),
+                    Button(label="Save Figma Settings", type="submit", variant="primary", icon="save"),
+                ],
+            ),
+        ],
+    )
+
+
+def _build_platforms_section(config):
+    """Social platforms: YouTube, TikTok, Instagram, LinkedIn."""
+    platforms_cfg = config.get("platforms", {})
+
+    platform_defs = [
+        ("youtube", "YouTube", "youtube"),
+        ("tiktok", "TikTok", "music"),
+        ("instagram", "Instagram", "instagram"),
+        ("linkedin", "LinkedIn", "linkedin"),
+    ]
+
+    platform_forms = []
+    for platform_id, platform_name, icon_name in platform_defs:
+        pcfg = platforms_cfg.get(platform_id, {})
+        is_enabled = pcfg.get("enabled", False)
+        has_key = bool(pcfg.get("api_key", ""))
+
+        platform_forms.append(
+            Card(
+                title=platform_name,
+                children=[
+                    Row(children=[
+                        Icon(name=icon_name, size=20),
+                        Badge(
+                            text="Active" if is_enabled and has_key else "Inactive",
+                            color="green" if is_enabled and has_key else "gray",
+                        ),
+                    ]),
+                    Toggle(
+                        name=f"platform_{platform_id}_enabled",
+                        label="Enable",
+                        value=is_enabled,
+                    ),
+                    Input(
+                        name=f"platform_{platform_id}_api_key",
+                        label="API Key",
+                        placeholder=f"Enter {platform_name} API key...",
+                        value=pcfg.get("api_key", ""),
+                        type="password",
+                    ),
+                ],
             )
         )
-    return Stack(children=toggles)
+
+    return Section(
+        title="Platforms",
+        description="Connect your social media accounts for publishing",
+        icon="share-2",
+        children=[
+            Stack(children=platform_forms),
+            Divider(),
+            Alert(
+                type="info",
+                message="API keys are stored securely in your personal token wallet. Never shared with other users or extensions.",
+            ),
+            FileUpload(
+                name="credentials_file",
+                label="Or upload a credentials JSON file",
+                accept=".json",
+                on_upload=Call(function="_import_credentials"),
+            ),
+        ],
+    )
+
+
+def _build_modules_section(config):
+    """Module toggles -- enable/disable individual modules."""
+    modules_cfg = config.get("modules", {})
+
+    module_cards = []
+    for mod_id, mod_info in ALL_MODULE_NAMES.items():
+        is_enabled = modules_cfg.get(mod_id, True)
+        module_cards.append(
+            Card(
+                title=mod_info["label"],
+                children=[
+                    Row(children=[
+                        Icon(name=mod_info["icon"], size=16),
+                        Text(text=mod_info["desc"]),
+                    ]),
+                    Toggle(
+                        name=f"module_{mod_id}",
+                        label="Enabled",
+                        value=is_enabled,
+                    ),
+                ],
+            )
+        )
+
+    return Section(
+        title="Modules",
+        description="Enable or disable individual modules to customize your workflow",
+        icon="puzzle",
+        children=[
+            Alert(
+                type="info",
+                message=f"{sum(1 for m in modules_cfg.values() if m)} of {len(ALL_MODULE_NAMES)} modules active",
+            ),
+            Grid(
+                columns=2,
+                gap=12,
+                children=module_cards,
+            ),
+        ],
+    )
+
+
+def _build_quality_section(config):
+    """Quality gates -- PCM min types, title length, hook timing."""
+    quality = config.get("quality", {})
+
+    return Section(
+        title="Quality Gates",
+        description="Set minimum quality thresholds for generated content",
+        icon="shield-check",
+        children=[
+            Form(
+                id="quality_form",
+                on_submit=Call(function="_save_quality_settings"),
+                children=[
+                    Row(children=[
+                        Column(children=[
+                            Select(
+                                name="pcm_min_types",
+                                label="Min PCM Types per Script",
+                                options=[
+                                    {"value": "2", "label": "2 -- Lenient"},
+                                    {"value": "3", "label": "3 -- Recommended"},
+                                    {"value": "4", "label": "4 -- Strict"},
+                                    {"value": "5", "label": "5 -- Very Strict"},
+                                    {"value": "6", "label": "6 -- All Types"},
+                                ],
+                                value=str(quality.get("pcm_min_types", 3)),
+                            ),
+                        ], width="50%"),
+                        Column(children=[
+                            Input(
+                                name="title_max_chars",
+                                label="Max Title Length (chars)",
+                                value=str(quality.get("title_max_chars", 55)),
+                            ),
+                        ], width="50%"),
+                    ]),
+                    Row(children=[
+                        Column(children=[
+                            Input(
+                                name="hook_max_seconds",
+                                label="Max Hook Duration (seconds)",
+                                value=str(quality.get("hook_max_seconds", 3)),
+                            ),
+                        ], width="50%"),
+                        Column(children=[
+                            Input(
+                                name="thumbnail_max_words",
+                                label="Max Thumbnail Words",
+                                value=str(quality.get("thumbnail_max_words", 4)),
+                            ),
+                        ], width="50%"),
+                    ]),
+                    Row(children=[
+                        Column(children=[
+                            Input(
+                                name="min_word_count",
+                                label="Min Script Word Count",
+                                value=str(config.get("content", {}).get("min_word_count", 150)),
+                            ),
+                        ], width="50%"),
+                        Column(children=[
+                            Input(
+                                name="max_hashtags",
+                                label="Max Hashtags per Post",
+                                value=str(config.get("content", {}).get("max_hashtags", 4)),
+                            ),
+                        ], width="50%"),
+                    ]),
+                    Button(label="Save Quality Gates", type="submit", variant="primary", icon="save"),
+                ],
+            ),
+        ],
+    )

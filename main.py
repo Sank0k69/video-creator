@@ -18,7 +18,7 @@ from imperal_sdk.types import ActionResult
 from config.defaults import DEFAULTS
 from modules import ALL_MODULES
 from pipelines import PipelineRegistry
-from ui import register_dashboard, register_settings, register_calendar
+from ui import register_dashboard, register_settings, register_calendar, register_sidebar
 
 # --- Extension setup ---
 
@@ -50,6 +50,7 @@ ext._tools["video_creator"].scopes = [
 register_dashboard(ext)
 register_settings(ext)
 register_calendar(ext)
+register_sidebar(ext)
 
 
 # --- Module registry ---
