@@ -8,7 +8,7 @@ Renders as a dedicated panel navigated from sidebar Settings button.
 from __future__ import annotations
 
 from imperal_sdk.ui import (
-    Page, Section, Row, Column, Stack, Grid,
+    Page, Section,  Stack, Grid,
     Header, Text, Divider, Alert, Badge, Icon,
     Form, Input, TextArea, Toggle, Select, TagInput, Slider, FileUpload,
     Button, Card, Accordion,
@@ -140,7 +140,7 @@ def _build_heygen_section(config):
     is_connected = bool(heygen_key)
 
     return Stack(children=[
-        Row(children=[
+        Stack(direction="h", children=[
             Badge(
                 label="Connected" if is_connected else "Not Connected",
                 color="green" if is_connected else "red",
@@ -181,7 +181,7 @@ def _build_figma_section(config):
     is_connected = bool(figma_token)
 
     return Stack(children=[
-        Row(children=[
+        Stack(direction="h", children=[
             Badge(
                 label="Connected" if is_connected else "Not Connected",
                 color="green" if is_connected else "gray",
@@ -228,7 +228,7 @@ def _build_platforms_section(config):
             Card(
                 title=platform_name,
                 content=Stack(children=[
-                    Row(children=[
+                    Stack(direction="h", children=[
                         Icon(name=icon_name, size=20),
                         Badge(
                             label="Active" if is_enabled and has_key else "Inactive",
@@ -278,7 +278,7 @@ def _build_modules_section(config):
             Card(
                 title=mod_info["label"],
                 content=Stack(children=[
-                    Row(children=[
+                    Stack(direction="h", children=[
                         Icon(name=mod_info["icon"], size=16),
                         Text(content=mod_info["desc"]),
                     ]),
@@ -309,8 +309,8 @@ def _build_quality_section(config):
             action="_save_quality_settings",
             submit_label="Save Quality Gates",
             children=[
-                Row(children=[
-                    Column(children=[
+                Stack(direction="h", children=[
+                    Stack(children=[
                         Select(
                             options=[
                                 {"value": "2", "label": "2 -- Lenient"},
@@ -324,7 +324,7 @@ def _build_quality_section(config):
                             placeholder="Min PCM Types per Script",
                         ),
                     ]),
-                    Column(children=[
+                    Stack(children=[
                         Input(
                             placeholder="Max Title Length (chars)",
                             value=str(quality.get("title_max_chars", 55)),
@@ -332,15 +332,15 @@ def _build_quality_section(config):
                         ),
                     ]),
                 ]),
-                Row(children=[
-                    Column(children=[
+                Stack(direction="h", children=[
+                    Stack(children=[
                         Input(
                             placeholder="Max Hook Duration (seconds)",
                             value=str(quality.get("hook_max_seconds", 3)),
                             param_name="hook_max_seconds",
                         ),
                     ]),
-                    Column(children=[
+                    Stack(children=[
                         Input(
                             placeholder="Max Thumbnail Words",
                             value=str(quality.get("thumbnail_max_words", 4)),
@@ -348,15 +348,15 @@ def _build_quality_section(config):
                         ),
                     ]),
                 ]),
-                Row(children=[
-                    Column(children=[
+                Stack(direction="h", children=[
+                    Stack(children=[
                         Input(
                             placeholder="Min Script Word Count",
                             value=str(config.get("content", {}).get("min_word_count", 150)),
                             param_name="min_word_count",
                         ),
                     ]),
-                    Column(children=[
+                    Stack(children=[
                         Input(
                             placeholder="Max Hashtags per Post",
                             value=str(config.get("content", {}).get("max_hashtags", 4)),

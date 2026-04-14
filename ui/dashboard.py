@@ -6,7 +6,7 @@ Renders in the right slot of Imperal Cloud OS.
 from __future__ import annotations
 
 from imperal_sdk.ui import (
-    Page, Section, Row, Column, Stack, Grid, Tabs,
+    Page, Section,  Stack, Grid, Tabs,
     Header, Text, Stat, Stats, Badge, Divider,
     DataTable, DataColumn, Button, Card, Image, Icon,
     Form, Input, TextArea, Select, Slider, TagInput,
@@ -39,11 +39,11 @@ def register_dashboard(ext):
             children=[
                 Tabs(
                     tabs=[
-                        {"label": "Create", "content": _build_create_tab()},
-                        {"label": "Library", "content": _build_library_tab(videos, completed, processing, failed)},
-                        {"label": "Ideas", "content": _build_ideas_tab(ideas_bank)},
-                        {"label": "Scripts", "content": _build_scripts_tab(scripts)},
-                        {"label": "Analytics", "content": _build_analytics_tab(videos, completed, metrics, recent_activity)},
+                        {"id": "create", "label": "Create", "content": _build_create_tab()},
+                        {"id": "library", "label": "Library", "content": _build_library_tab(videos, completed, processing, failed)},
+                        {"id": "ideas", "label": "Ideas", "content": _build_ideas_tab(ideas_bank)},
+                        {"id": "scripts", "label": "Scripts", "content": _build_scripts_tab(scripts)},
+                        {"id": "analytics", "label": "Analytics", "content": _build_analytics_tab(videos, completed, metrics, recent_activity)},
                     ],
                 ),
             ],
@@ -75,24 +75,24 @@ def _build_create_tab():
                         ),
 
                         Divider(label="Duration"),
-                        Row(children=[
+                        Stack(direction="h", children=[
                             Button(
                                 label="Quick 60s",
                                 variant="secondary",
                                 icon="zap",
-                                on_click=Call(function="write_script", params={"tier": 1, "format_type": "viral", "duration": "short"}),
+                                on_click=Call(function="write_script", tier=1, format_type="viral", duration="short"),
                             ),
                             Button(
                                 label="Detailed 3-5min",
                                 variant="secondary",
                                 icon="clock",
-                                on_click=Call(function="write_script", params={"tier": 2, "format_type": "viral", "duration": "medium"}),
+                                on_click=Call(function="write_script", tier=2, format_type="viral", duration="medium"),
                             ),
                             Button(
                                 label="Full 10min+",
                                 variant="secondary",
                                 icon="film",
-                                on_click=Call(function="write_script", params={"tier": 2, "format_type": "viral", "duration": "long"}),
+                                on_click=Call(function="write_script", tier=2, format_type="viral", duration="long"),
                             ),
                         ]),
 
@@ -104,33 +104,33 @@ def _build_create_tab():
                                 Card(
                                     title="TikTok Viral",
                                     subtitle="Fast hooks, vertical",
-                                    on_click=Call(function="write_script", params={"format_type": "viral", "tier": 1}),
+                                    on_click=Call(function="write_script", format_type="viral", tier=1),
                                     content=Icon(name="zap", size=24),
                                 ),
                                 Card(
                                     title="YouTube Pro",
                                     subtitle="Retention-optimized",
-                                    on_click=Call(function="write_script", params={"format_type": "viral", "tier": 2}),
+                                    on_click=Call(function="write_script", format_type="viral", tier=2),
                                     content=Icon(name="youtube", size=24),
                                 ),
                                 Card(
                                     title="LinkedIn Corp",
                                     subtitle="Thought leadership",
-                                    on_click=Call(function="write_script", params={"format_type": "pitch", "tier": 2}),
+                                    on_click=Call(function="write_script", format_type="pitch", tier=2),
                                     content=Icon(name="briefcase", size=24),
                                 ),
                                 Card(
                                     title="Promo",
                                     subtitle="Product showcase",
-                                    on_click=Call(function="write_script", params={"format_type": "pitch", "tier": 1}),
+                                    on_click=Call(function="write_script", format_type="pitch", tier=1),
                                     content=Icon(name="megaphone", size=24),
                                 ),
                             ],
                         ),
 
                         Divider(label="Options"),
-                        Row(children=[
-                            Column(children=[
+                        Stack(direction="h", children=[
+                            Stack(children=[
                                 Select(
                                     options=[
                                         {"value": "en", "label": "English"},
@@ -145,7 +145,7 @@ def _build_create_tab():
                                     placeholder="Language",
                                 ),
                             ]),
-                            Column(children=[
+                            Stack(children=[
                                 Select(
                                     options=[
                                         {"value": "portrait", "label": "Portrait (9:16)"},
@@ -170,24 +170,24 @@ def _build_create_tab():
             title="Quick Actions",
             collapsible=True,
             children=[
-                Row(children=[
+                Stack(direction="h", children=[
                     Button(
                         label="Full Pipeline",
                         variant="primary",
                         icon="play",
-                        on_click=Call(function="create_video", params={"tier": 1}),
+                        on_click=Call(function="create_video", tier=1),
                     ),
                     Button(
                         label="Quick Script",
                         variant="secondary",
                         icon="zap",
-                        on_click=Call(function="quick_script", params={"format_type": "viral"}),
+                        on_click=Call(function="quick_script", format_type="viral"),
                     ),
                     Button(
                         label="Generate Video",
                         variant="secondary",
                         icon="video",
-                        on_click=Call(function="create_video_heygen", params={"dimension": "portrait"}),
+                        on_click=Call(function="create_video_heygen", dimension="portrait"),
                     ),
                 ]),
             ],
@@ -244,7 +244,7 @@ def _build_library_tab(videos, completed, processing, failed):
     return Stack(children=[
         stats_row,
         Divider(),
-        Row(children=[
+        Stack(direction="h", children=[
             Button(
                 label="New Video",
                 variant="primary",
@@ -255,7 +255,7 @@ def _build_library_tab(videos, completed, processing, failed):
                 label="Refresh",
                 variant="secondary",
                 icon="refresh-cw",
-                on_click=Call(function="list_avatars", params={"limit": 1}),
+                on_click=Call(function="list_avatars", limit=1),
             ),
         ]),
         videos_table,
@@ -281,8 +281,8 @@ def _build_ideas_tab(ideas_bank):
                             placeholder="Topic or niche (e.g., NVMe hosting, website speed)...",
                             param_name="topic",
                         ),
-                        Row(children=[
-                            Column(children=[
+                        Stack(direction="h", children=[
+                            Stack(children=[
                                 Select(
                                     options=[
                                         {"value": "5", "label": "5 ideas"},
@@ -294,7 +294,7 @@ def _build_ideas_tab(ideas_bank):
                                     placeholder="How many",
                                 ),
                             ]),
-                            Column(children=[
+                            Stack(children=[
                                 Select(
                                     options=[
                                         {"value": "mixed", "label": "Mixed methods"},
@@ -310,18 +310,18 @@ def _build_ideas_tab(ideas_bank):
                         ]),
                     ],
                 ),
-                Row(children=[
+                Stack(direction="h", children=[
                     Button(
                         label="Generate Ideas",
                         variant="primary",
                         icon="lightbulb",
-                        on_click=Call(function="generate_ideas", params={"count": 10, "method": "mixed"}),
+                        on_click=Call(function="generate_ideas", count=10, method="mixed"),
                     ),
                     Button(
                         label="Generate Hooks",
                         variant="secondary",
                         icon="anchor",
-                        on_click=Call(function="generate_hooks", params={"count": 5}),
+                        on_click=Call(function="generate_hooks", count=5),
                     ),
                 ]),
             ],
@@ -369,8 +369,8 @@ def _build_scripts_tab(scripts):
                             placeholder="Topic (e.g., Why NVMe hosting is 10x faster)",
                             param_name="topic",
                         ),
-                        Row(children=[
-                            Column(children=[
+                        Stack(direction="h", children=[
+                            Stack(children=[
                                 Select(
                                     options=[
                                         {"value": "1", "label": "Tier 1 -- Simple (hook-body-CTA)"},
@@ -380,7 +380,7 @@ def _build_scripts_tab(scripts):
                                     param_name="tier",
                                 ),
                             ]),
-                            Column(children=[
+                            Stack(children=[
                                 Select(
                                     options=[
                                         {"value": "viral", "label": "Viral"},
@@ -391,7 +391,7 @@ def _build_scripts_tab(scripts):
                                     param_name="format_type",
                                 ),
                             ]),
-                            Column(children=[
+                            Stack(children=[
                                 Select(
                                     options=[
                                         {"value": "short", "label": "Short (60s)"},
@@ -405,18 +405,18 @@ def _build_scripts_tab(scripts):
                         ]),
                     ],
                 ),
-                Row(children=[
+                Stack(direction="h", children=[
                     Button(
                         label="Write Script",
                         variant="primary",
                         icon="file-text",
-                        on_click=Call(function="write_script", params={"tier": 1, "format_type": "viral"}),
+                        on_click=Call(function="write_script", tier=1, format_type="viral"),
                     ),
                     Button(
                         label="Quick Script",
                         variant="secondary",
                         icon="zap",
-                        on_click=Call(function="quick_script", params={"format_type": "viral"}),
+                        on_click=Call(function="quick_script", format_type="viral"),
                     ),
                 ]),
             ],
@@ -434,7 +434,7 @@ def _build_scripts_tab(scripts):
                     content=Markdown(content="_No script generated yet. Use the form above to create one._"),
                 ),
                 Divider(),
-                Row(children=[
+                Stack(direction="h", children=[
                     Input(
                         placeholder="Rewrite instructions (e.g., make it more casual, add humor)...",
                         param_name="rewrite_prompt",
@@ -443,7 +443,7 @@ def _build_scripts_tab(scripts):
                         label="Rewrite",
                         variant="secondary",
                         icon="refresh-cw",
-                        on_click=Call(function="write_script", params={"tier": 1}),
+                        on_click=Call(function="write_script", tier=1),
                     ),
                 ]),
             ],
@@ -456,8 +456,8 @@ def _build_scripts_tab(scripts):
             title="Render Video",
             collapsible=True,
             children=[
-                Row(children=[
-                    Column(children=[
+                Stack(direction="h", children=[
+                    Stack(children=[
                         Select(
                             options=[
                                 {"value": "portrait", "label": "Portrait (9:16)"},
@@ -469,7 +469,7 @@ def _build_scripts_tab(scripts):
                             placeholder="Video Dimension",
                         ),
                     ]),
-                    Column(children=[
+                    Stack(children=[
                         Select(
                             options=[
                                 {"value": "en", "label": "English"},
@@ -482,24 +482,24 @@ def _build_scripts_tab(scripts):
                         ),
                     ]),
                 ]),
-                Row(children=[
+                Stack(direction="h", children=[
                     Button(
                         label="Generate Video",
                         variant="primary",
                         icon="video",
-                        on_click=Call(function="create_video_heygen", params={"dimension": "portrait"}),
+                        on_click=Call(function="create_video_heygen", dimension="portrait"),
                     ),
                     Button(
                         label="List Avatars",
                         variant="secondary",
                         icon="users",
-                        on_click=Call(function="list_avatars", params={"limit": 20}),
+                        on_click=Call(function="list_avatars", limit=20),
                     ),
                     Button(
                         label="List Voices",
                         variant="secondary",
                         icon="mic",
-                        on_click=Call(function="list_voices", params={"language": "en"}),
+                        on_click=Call(function="list_voices", language="en"),
                     ),
                 ]),
                 Progress(
@@ -574,8 +574,8 @@ def _build_analytics_tab(videos, completed, metrics, recent_activity):
 
         Divider(),
 
-        Row(children=[
-            Column(children=[
+        Stack(direction="h", children=[
+            Stack(children=[
                 Section(
                     title="Videos Created (This Week)",
                     children=[
@@ -588,7 +588,7 @@ def _build_analytics_tab(videos, completed, metrics, recent_activity):
                     ],
                 ),
             ]),
-            Column(children=[
+            Stack(children=[
                 Section(
                     title="Recent Activity",
                     children=[

@@ -4,7 +4,7 @@ Shows: planned content, posted content, 30-day streak progress.
 """
 from __future__ import annotations
 from imperal_sdk.ui import (
-    Stack, Row, Column,
+    Stack, 
     Header, Text, Stat, Stats, Badge, Divider,
     Button, Card,
     Timeline, Progress,

@@ -27,16 +27,21 @@ from imperal_sdk.context import Context
 def get_ui_signatures() -> dict[str, set[str]]:
     """Get valid kwargs for every UI component from SDK source."""
     sigs = {}
+    accepts_any_kwargs = set()
     for name in dir(sdk_ui):
         obj = getattr(sdk_ui, name)
         if callable(obj) and name[0].isupper() and not name.startswith("_"):
             try:
                 sig = inspect.signature(obj)
                 params = set(sig.parameters.keys())
+                # Check if function accepts **kwargs (VAR_KEYWORD)
+                for p in sig.parameters.values():
+                    if p.kind == inspect.Parameter.VAR_KEYWORD:
+                        accepts_any_kwargs.add(name)
                 sigs[name] = params
             except (ValueError, TypeError):
                 pass
-    return sigs
+    return sigs, accepts_any_kwargs
 
 
 def get_protocol_methods(proto_name: str) -> dict[str, set[str]]:
@@ -60,7 +65,7 @@ def get_protocol_methods(proto_name: str) -> dict[str, set[str]]:
     return methods
 
 
-UI_SIGS = get_ui_signatures()
+UI_SIGS, UI_ACCEPTS_ANY_KWARGS = get_ui_signatures()
 STORE_METHODS = get_protocol_methods("StoreProtocol")
 AI_METHODS = get_protocol_methods("AIProtocol")
 
@@ -148,6 +153,9 @@ class TestUIComponentSignatures:
         errors = []
         for call in all_ui_calls:
             name = call["name"]
+            # Skip components that accept **kwargs (e.g. Call)
+            if name in UI_ACCEPTS_ANY_KWARGS:
+                continue
             valid = UI_SIGS.get(name, set())
             invalid = call["kwargs"] - valid
             if invalid:
@@ -189,6 +197,14 @@ class TestUIComponentSignatures:
             if call["name"] == "Button" and "action" in call["kwargs"]:
                 errors.append(f'{call["file"]}:{call["line"]} — Button(action=...) → use on_click=')
         assert not errors, "Button uses 'action' instead of 'on_click':\n" + "\n".join(errors)
+
+    def test_call_no_params_dict(self, all_ui_calls):
+        """Call() must use **kwargs, NOT params={} (causes double nesting)."""
+        errors = []
+        for call in all_ui_calls:
+            if call["name"] == "Call" and "params" in call["kwargs"]:
+                errors.append(f'{call["file"]}:{call["line"]} — Call(params={{...}}) → use Call(function=..., key=val)')
+        assert not errors, "Call uses params={} (double nesting bug):\n" + "\n".join(errors)
 
     def test_badge_uses_label(self, all_ui_calls):
         """Badge must use label=, not text=."""

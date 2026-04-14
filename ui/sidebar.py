@@ -6,7 +6,7 @@ Renders in the left slot of Imperal Cloud OS.
 from __future__ import annotations
 
 from imperal_sdk.ui import (
-    Page, Section, Row, Column, Stack,
+    Page, Section,  Stack,
     Header, Text, Stat, Stats, Badge, Divider, Icon,
     Button, Card, ListItem, List,
     Progress,
