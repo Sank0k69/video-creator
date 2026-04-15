@@ -21,6 +21,10 @@
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; }
+/* Embed mode — no nav, no padding, matches Imperal theme */
+body.embed nav { display:none !important; }
+body.embed .page { padding:16px; max-width:100%; }
+body.embed { background:#0a0a0f; }
 nav { display:flex; align-items:center; gap:24px; padding:16px 32px; background:var(--surface); border-bottom:1px solid var(--border); position:sticky; top:0; z-index:100; }
 nav .logo { font-size:18px; font-weight:700; color:var(--accent2); }
 nav .tabs { display:flex; gap:4px; }
@@ -1890,6 +1894,22 @@ document.getElementById('figma-search').addEventListener('keydown', function(e) 
 });
 document.getElementById('btn-refresh-figma').addEventListener('click', function() {
   loadFigmaComponents(document.getElementById('figma-search').value.trim());
+});
+
+// Embed mode — hide nav when inside Imperal iframe
+if (new URLSearchParams(window.location.search).has('embed')) {
+    document.body.classList.add('embed');
+}
+
+// Listen for postMessage from Imperal sidebar
+window.addEventListener('message', function(e) {
+    if (e.data && e.data.tab) {
+        // Switch to requested tab
+        var tabs = document.querySelectorAll('.tab');
+        tabs.forEach(function(t) {
+            if (t.dataset.page === e.data.tab) t.click();
+        });
+    }
 });
 
 // Init
