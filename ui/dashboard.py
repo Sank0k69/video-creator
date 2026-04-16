@@ -1,35 +1,72 @@
 """
 Dashboard Panel — main workspace for Video Creator extension.
-Contextual right panel: Create, Library, Idea Generator, Script Writer, etc.
-Renders in the right slot of Imperal Cloud OS.
+Pure DUI components, no iframe. SDK 1.5.4 with native Video() player.
+
+Tabs: Create | My Videos | Ideas | Scripts | Analytics
+Renders in slot="main" (center panel).
 """
 from __future__ import annotations
 
 from imperal_sdk.ui import (
-    Page, Section,  Stack, Grid, Tabs,
+    Page, Section, Stack, Grid, Tabs,
     Header, Text, Stat, Stats, Badge, Divider,
     DataTable, DataColumn, Button, Card, Image, Icon,
-    Form, Input, TextArea, Select, Slider, TagInput,
-    Timeline, Progress, Alert, Markdown,
-    SlideOver, Dialog, Chart, Empty,
-    ListItem, List, KeyValue, Html, Link, Video,
-    Call, Open,
+    Form, Input, TextArea, Select,
+    Timeline, Progress, Alert, Markdown, Chart,
+    List, ListItem, Empty, KeyValue, Video,
+    Call, Open, Link,
 )
 
 
 def register_dashboard(ext):
-    """Register the dashboard panel on the right slot."""
+    """Register the dashboard panel on the main slot."""
 
     @ext.panel("workspace", slot="main", title="Video Creator", icon="film")
     async def workspace_panel(ctx):
+        # Load data from store
+        videos = await ctx.store.get("video_production", "videos") or []
+        ideas_bank = await ctx.store.get("ideation", "ideas_bank") or []
+        scripts = await ctx.store.query("scripting_scripts", {})
+        metrics = await ctx.store.query("iteration_metrics", {})
+        recent_activity = await ctx.store.query("activity_log", {})
+
+        completed = [v for v in videos if v.get("status") == "completed"]
+        processing = [v for v in videos if v.get("status") in ("processing", "pending")]
+        failed = [v for v in videos if v.get("status") == "failed"]
+
         return Page(
             title="Video Creator",
             subtitle="AI-powered video content workspace",
             children=[
-                Html(
-                    content='<iframe src="https://agent.lexa-lox.xyz/video-creator/?embed=1" style="width:100%;height:calc(100vh - 120px);border:none;border-radius:8px;" allow="clipboard-write"></iframe>',
-                    sandbox=False,
-                    max_height=0,
+                Tabs(
+                    tabs=[
+                        {
+                            "label": "Create",
+                            "icon": "sparkles",
+                            "content": _build_create_tab(),
+                        },
+                        {
+                            "label": "My Videos",
+                            "icon": "film",
+                            "content": _build_library_tab(videos, completed, processing, failed),
+                        },
+                        {
+                            "label": "Ideas",
+                            "icon": "lightbulb",
+                            "content": _build_ideas_tab(ideas_bank),
+                        },
+                        {
+                            "label": "Scripts",
+                            "icon": "file-text",
+                            "content": _build_scripts_tab(scripts),
+                        },
+                        {
+                            "label": "Analytics",
+                            "icon": "bar-chart-2",
+                            "content": _build_analytics_tab(videos, completed, metrics, recent_activity),
+                        },
+                    ],
+                    default_tab=0,
                 ),
             ],
         )
@@ -38,114 +75,140 @@ def register_dashboard(ext):
 
 
 # =====================================================
-# TAB 1: CREATE — the primary workflow
+# TAB 1: CREATE — the main workflow
 # =====================================================
 
 def _build_create_tab():
-    """Create tab — simple brief input, format cards, one-click generate."""
+    """Create tab -- brief input, duration/style cards, generate button."""
 
     return Stack(children=[
-        # Brief input
+        # Brief
         Section(
             title="What is this video about?",
             children=[
-                Form(
-                    action="create_video_start",
-                    submit_label="Generate Script",
-                    children=[
-                        TextArea(
-                            placeholder="Describe your video idea: topic, key points, target audience...",
-                            param_name="brief",
-                            rows=3,
-                        ),
-
-                        Divider(label="Duration"),
-                        Stack(direction="h", children=[
-                            Button(
-                                label="Quick 60s",
-                                variant="secondary",
-                                icon="zap",
-                                on_click=Call(function="write_script", tier=1, format_type="viral", duration="short"),
-                            ),
-                            Button(
-                                label="Detailed 3-5min",
-                                variant="secondary",
-                                icon="clock",
-                                on_click=Call(function="write_script", tier=2, format_type="viral", duration="medium"),
-                            ),
-                            Button(
-                                label="Full 10min+",
-                                variant="secondary",
-                                icon="film",
-                                on_click=Call(function="write_script", tier=2, format_type="viral", duration="long"),
-                            ),
-                        ]),
-
-                        Divider(label="Style"),
-                        Grid(
-                            columns=4,
-                            gap=8,
-                            children=[
-                                Card(
-                                    title="TikTok Viral",
-                                    subtitle="Fast hooks, vertical",
-                                    on_click=Call(function="write_script", format_type="viral", tier=1),
-                                    content=Icon(name="zap", size=24),
-                                ),
-                                Card(
-                                    title="YouTube Pro",
-                                    subtitle="Retention-optimized",
-                                    on_click=Call(function="write_script", format_type="viral", tier=2),
-                                    content=Icon(name="youtube", size=24),
-                                ),
-                                Card(
-                                    title="LinkedIn Corp",
-                                    subtitle="Thought leadership",
-                                    on_click=Call(function="write_script", format_type="pitch", tier=2),
-                                    content=Icon(name="briefcase", size=24),
-                                ),
-                                Card(
-                                    title="Promo",
-                                    subtitle="Product showcase",
-                                    on_click=Call(function="write_script", format_type="pitch", tier=1),
-                                    content=Icon(name="megaphone", size=24),
-                                ),
-                            ],
-                        ),
-
-                        Divider(label="Options"),
-                        Stack(direction="h", children=[
-                            Stack(children=[
-                                Select(
-                                    options=[
-                                        {"value": "en", "label": "English"},
-                                        {"value": "es", "label": "Spanish"},
-                                        {"value": "ru", "label": "Russian"},
-                                        {"value": "pt", "label": "Portuguese"},
-                                        {"value": "de", "label": "German"},
-                                        {"value": "fr", "label": "French"},
-                                    ],
-                                    value="en",
-                                    param_name="language",
-                                    placeholder="Language",
-                                ),
-                            ]),
-                            Stack(children=[
-                                Select(
-                                    options=[
-                                        {"value": "portrait", "label": "Portrait (9:16)"},
-                                        {"value": "landscape", "label": "Landscape (16:9)"},
-                                        {"value": "square", "label": "Square (1:1)"},
-                                    ],
-                                    value="portrait",
-                                    param_name="dimension",
-                                    placeholder="Aspect Ratio",
-                                ),
-                            ]),
-                        ]),
-                    ],
+                TextArea(
+                    placeholder="Describe your video idea: topic, key points, target audience...",
+                    param_name="brief",
+                    rows=3,
                 ),
             ],
+        ),
+
+        # Duration selection
+        Section(
+            title="Duration",
+            children=[
+                Stack(direction="h", gap=4, children=[
+                    Card(
+                        title="Quick 60s",
+                        subtitle="Fast hook, single point",
+                        content=Icon(name="zap", size=28, color="orange"),
+                        on_click=Call(function="write_script", tier=1, format_type="viral", duration="short"),
+                    ),
+                    Card(
+                        title="Detailed 3-5min",
+                        subtitle="Deep dive, multi-point",
+                        content=Icon(name="clock", size=28, color="blue"),
+                        on_click=Call(function="write_script", tier=2, format_type="viral", duration="medium"),
+                    ),
+                    Card(
+                        title="Full 10min+",
+                        subtitle="Complete breakdown",
+                        content=Icon(name="film", size=28, color="purple"),
+                        on_click=Call(function="write_script", tier=2, format_type="viral", duration="long"),
+                    ),
+                ]),
+            ],
+        ),
+
+        # Style presets
+        Section(
+            title="Style Preset",
+            children=[
+                Grid(columns=2, gap=4, children=[
+                    Card(
+                        title="TikTok Viral",
+                        subtitle="Fast hooks, vertical, trending",
+                        content=Stack(direction="h", gap=2, children=[
+                            Icon(name="zap", size=20),
+                            Badge(label="Short-form", color="orange"),
+                        ]),
+                        on_click=Call(function="write_script", format_type="viral", tier=1, duration="short"),
+                    ),
+                    Card(
+                        title="YouTube Pro",
+                        subtitle="Retention-optimized, long-form",
+                        content=Stack(direction="h", gap=2, children=[
+                            Icon(name="play", size=20),
+                            Badge(label="Long-form", color="red"),
+                        ]),
+                        on_click=Call(function="write_script", format_type="viral", tier=2, duration="medium"),
+                    ),
+                    Card(
+                        title="LinkedIn Corp",
+                        subtitle="Thought leadership, professional",
+                        content=Stack(direction="h", gap=2, children=[
+                            Icon(name="briefcase", size=20),
+                            Badge(label="B2B", color="blue"),
+                        ]),
+                        on_click=Call(function="write_script", format_type="pitch", tier=2, duration="medium"),
+                    ),
+                    Card(
+                        title="Promo",
+                        subtitle="Product showcase, no avatar",
+                        content=Stack(direction="h", gap=2, children=[
+                            Icon(name="megaphone", size=20),
+                            Badge(label="Sales", color="green"),
+                        ]),
+                        on_click=Call(function="write_script", format_type="pitch", tier=1, duration="short"),
+                    ),
+                ]),
+            ],
+        ),
+
+        # Language + Format row
+        Section(
+            title="Options",
+            collapsible=True,
+            children=[
+                Stack(direction="h", gap=4, children=[
+                    Select(
+                        options=[
+                            {"value": "en", "label": "English"},
+                            {"value": "es", "label": "Spanish"},
+                            {"value": "ru", "label": "Russian"},
+                            {"value": "pt", "label": "Portuguese"},
+                            {"value": "de", "label": "German"},
+                            {"value": "fr", "label": "French"},
+                        ],
+                        value="en",
+                        param_name="language",
+                        placeholder="Language",
+                    ),
+                    Select(
+                        options=[
+                            {"value": "portrait", "label": "Portrait (9:16)"},
+                            {"value": "landscape", "label": "Landscape (16:9)"},
+                            {"value": "square", "label": "Square (1:1)"},
+                        ],
+                        value="portrait",
+                        param_name="dimension",
+                        placeholder="Aspect Ratio",
+                    ),
+                ]),
+            ],
+        ),
+
+        Divider(),
+
+        # BIG Generate button
+        Button(
+            label="Generate Script",
+            variant="primary",
+            icon="sparkles",
+            size="md",
+            full_width=True,
+            on_click=Call(function="write_script", tier=1, format_type="viral", duration="short"),
         ),
 
         Divider(),
@@ -155,7 +218,7 @@ def _build_create_tab():
             title="Quick Actions",
             collapsible=True,
             children=[
-                Stack(direction="h", children=[
+                Stack(direction="h", gap=3, children=[
                     Button(
                         label="Full Pipeline",
                         variant="primary",
@@ -181,65 +244,83 @@ def _build_create_tab():
 
 
 # =====================================================
-# TAB 2: LIBRARY — browse all videos
+# TAB 2: MY VIDEOS — video library with native Video()
 # =====================================================
 
 def _build_library_tab(videos, completed, processing, failed):
-    """Library tab — video list with status filtering."""
+    """Library tab -- stats, video cards with native player, data table."""
 
-    # Stats bar
+    # Stats row
     stats_row = Stats(children=[
-        Stat(label="Total", value=str(len(videos)), icon="film"),
-        Stat(label="Completed", value=str(len(completed)), icon="check-circle"),
-        Stat(label="Processing", value=str(len(processing)), icon="loader"),
-        Stat(label="Failed", value=str(len(failed)), icon="alert-triangle"),
+        Stat(label="Total", value=str(len(videos)), icon="film", color="blue"),
+        Stat(label="Completed", value=str(len(completed)), icon="check-circle", color="green"),
+        Stat(label="Processing", value=str(len(processing)), icon="loader", color="yellow"),
+        Stat(label="Failed", value=str(len(failed)), icon="alert-triangle", color="red"),
     ])
 
-    # Video cards for completed videos (with preview)
+    # Empty state
+    if not videos:
+        return Stack(children=[
+            stats_row,
+            Divider(),
+            Empty(
+                message="No videos yet. Create your first one!",
+                icon="film",
+                action=Call(function="write_script", topic="", tier=1),
+            ),
+        ])
+
+    # Video cards for completed videos with native Video() player
     video_cards = []
     for v in completed[:6]:
         title = v.get("title", "Untitled")[:40]
         video_url = v.get("video_url", "")
         thumb = v.get("thumbnail_url", "")
         duration = _format_duration(v.get("duration", 0))
+        status = v.get("status", "completed")
 
-        card_children = []
-        if thumb:
-            card_children.append(Image(src=thumb, alt=title, width="100%", object_fit="cover"))
+        card_content_items = []
+
+        # Native video player
         if video_url:
-            card_children.append(
-                Video(src=video_url, poster=thumb, controls=True, width="100%")
+            card_content_items.append(
+                Video(
+                    src=video_url,
+                    poster=thumb,
+                    controls=True,
+                    width="100%",
+                    title=title,
+                )
             )
-            card_children.append(
-                Link(label="Open in new tab", href=video_url, on_click=Open(url=video_url))
+        elif thumb:
+            card_content_items.append(
+                Image(src=thumb, alt=title, width="100%", object_fit="cover")
             )
+
+        # Meta info
+        card_content_items.append(
+            Stack(direction="h", gap=2, children=[
+                Badge(label=status, color="green"),
+                Text(content=duration, variant="caption"),
+            ])
+        )
 
         video_cards.append(Card(
             title=title,
-            subtitle=f"{duration}" if duration else "",
-            content=Stack(children=card_children) if card_children else None,
+            subtitle=duration,
+            content=Stack(children=card_content_items),
         ))
 
-    # Video table for all
+    # Data table for all videos
     table_rows = []
     for v in videos[:50]:
+        status = v.get("status", "unknown")
         table_rows.append({
-            "title": v.get("title", v.get("video_id", "Untitled")[:40]),
-            "status": v.get("status", "unknown"),
+            "title": v.get("title", v.get("video_id", "Untitled"))[:40],
+            "status": status,
             "duration": _format_duration(v.get("duration", 0)),
             "created": v.get("created_at", v.get("created", "")),
         })
-
-    if not table_rows:
-        return Stack(children=[
-            stats_row,
-            Divider(),
-            Empty(
-                message="No videos yet. Create your first one!",
-                icon="video",
-                action=Call(function="write_script", topic="", tier=1),
-            ),
-        ])
 
     videos_table = DataTable(
         rows=table_rows,
@@ -249,22 +330,29 @@ def _build_library_tab(videos, completed, processing, failed):
             DataColumn(key="duration", label="Duration"),
             DataColumn(key="created", label="Created"),
         ],
+        on_row_click=Call(function="video_status", video_id=""),
     )
 
-    return Stack(children=[
+    children = [
         stats_row,
         Divider(),
-        # Video previews grid
-        *(
-            [
-                Section(title="Recent Videos", children=[
-                    Grid(columns=3, children=video_cards),
-                ]),
-                Divider(),
-            ] if video_cards else []
-        ),
-        # All videos table
-        Stack(direction="h", children=[
+    ]
+
+    # Video preview grid
+    if video_cards:
+        children.append(
+            Section(
+                title="Recent Videos",
+                children=[
+                    Grid(columns=2, gap=4, children=video_cards),
+                ],
+            )
+        )
+        children.append(Divider())
+
+    # Action buttons + table
+    children.append(
+        Stack(direction="h", gap=3, children=[
             Button(
                 label="New Video",
                 variant="primary",
@@ -275,11 +363,13 @@ def _build_library_tab(videos, completed, processing, failed):
                 label="Refresh",
                 variant="secondary",
                 icon="refresh-cw",
-                on_click=Call(function="list_avatars", limit=1),
+                on_click=Call(function="video_status", video_id="all"),
             ),
-        ]),
-        videos_table,
-    ])
+        ])
+    )
+    children.append(videos_table)
+
+    return Stack(children=children)
 
 
 # =====================================================
@@ -287,55 +377,73 @@ def _build_library_tab(videos, completed, processing, failed):
 # =====================================================
 
 def _build_ideas_tab(ideas_bank):
-    """Ideas tab — generate and browse ideas."""
+    """Ideas tab -- generate ideas and browse bank."""
+
+    # Idea items as clickable list
+    idea_items = []
+    for i, idea in enumerate(ideas_bank[:20]):
+        idea_title = idea.get("title", f"Idea {i+1}")
+        zone = idea.get("classification", "")
+        hook_type = idea.get("hook_potential", "")
+
+        idea_items.append(
+            ListItem(
+                id=f"idea-{i}",
+                title=idea_title,
+                subtitle=f"{zone} -- {hook_type}" if zone else "",
+                icon="lightbulb",
+                badge=Badge(label=zone, color="blue") if zone else None,
+                on_click=Call(function="write_script", topic=idea_title, tier=1),
+                actions=[
+                    {
+                        "label": "Use this idea",
+                        "icon": "arrow-right",
+                        "on_click": Call(function="write_script", topic=idea_title, tier=1),
+                    },
+                ],
+            )
+        )
 
     return Stack(children=[
         Section(
             title="Idea Generator",
             children=[
-                Form(
-                    action="generate_ideas_form",
-                    submit_label="Generate Ideas",
-                    children=[
-                        Input(
-                            placeholder="Topic or niche (e.g., NVMe hosting, website speed)...",
-                            param_name="topic",
+                Stack(children=[
+                    Input(
+                        placeholder="Topic or niche (e.g., NVMe hosting, website speed)...",
+                        param_name="topic",
+                    ),
+                    Stack(direction="h", gap=3, children=[
+                        Select(
+                            options=[
+                                {"value": "5", "label": "5 ideas"},
+                                {"value": "10", "label": "10 ideas"},
+                                {"value": "20", "label": "20 ideas"},
+                            ],
+                            value="5",
+                            param_name="count",
+                            placeholder="How many",
                         ),
-                        Stack(direction="h", children=[
-                            Stack(children=[
-                                Select(
-                                    options=[
-                                        {"value": "5", "label": "5 ideas"},
-                                        {"value": "10", "label": "10 ideas"},
-                                        {"value": "20", "label": "20 ideas"},
-                                    ],
-                                    value="10",
-                                    param_name="count",
-                                    placeholder="How many",
-                                ),
-                            ]),
-                            Stack(children=[
-                                Select(
-                                    options=[
-                                        {"value": "mixed", "label": "Mixed methods"},
-                                        {"value": "commence", "label": "Commence"},
-                                        {"value": "snatch_twirl", "label": "Snatch & Twirl"},
-                                        {"value": "audience", "label": "Audience-first"},
-                                    ],
-                                    value="mixed",
-                                    param_name="method",
-                                    placeholder="Method",
-                                ),
-                            ]),
-                        ]),
-                    ],
-                ),
-                Stack(direction="h", children=[
+                        Select(
+                            options=[
+                                {"value": "mixed", "label": "Mixed methods"},
+                                {"value": "commence", "label": "Commence"},
+                                {"value": "snatch_twirl", "label": "Snatch & Twirl"},
+                                {"value": "audience", "label": "Audience-first"},
+                            ],
+                            value="mixed",
+                            param_name="method",
+                            placeholder="Method",
+                        ),
+                    ]),
+                ]),
+                Divider(),
+                Stack(direction="h", gap=3, children=[
                     Button(
-                        label="Generate Ideas",
+                        label="Generate 5 Ideas",
                         variant="primary",
-                        icon="lightbulb",
-                        on_click=Call(function="generate_ideas", count=10, method="mixed"),
+                        icon="sparkles",
+                        on_click=Call(function="generate_ideas", count=5, method="mixed"),
                     ),
                     Button(
                         label="Generate Hooks",
@@ -354,14 +462,7 @@ def _build_ideas_tab(ideas_bank):
             title=f"Ideas Bank ({len(ideas_bank)})",
             collapsible=True,
             children=[
-                DataTable(
-                    rows=ideas_bank[:20],
-                    columns=[
-                        DataColumn(key="title", label="Idea"),
-                        DataColumn(key="classification", label="Zone"),
-                        DataColumn(key="hook_potential", label="Hook Type"),
-                    ],
-                ) if ideas_bank else Empty(
+                List(items=idea_items) if idea_items else Empty(
                     message="No ideas yet. Generate some above!",
                     icon="lightbulb",
                 ),
@@ -375,57 +476,65 @@ def _build_ideas_tab(ideas_bank):
 # =====================================================
 
 def _build_scripts_tab(scripts):
-    """Scripts tab — write and manage scripts."""
+    """Scripts tab -- write new, browse recent, preview with Markdown."""
+
+    # Recent script cards
+    script_cards = []
+    for s in (scripts[:6] if isinstance(scripts, list) else []):
+        sid = s.get("script_id", s.get("id", ""))
+        title = s.get("title", s.get("topic", f"Script {sid}"))[:40]
+        preview = s.get("preview", s.get("content", ""))[:120]
+        status = s.get("status", "completed")
+
+        script_cards.append(Card(
+            title=title,
+            subtitle=status,
+            content=Stack(children=[
+                Markdown(content=preview + "..." if len(preview) >= 120 else preview) if preview else Text(content="No preview available", variant="caption"),
+                Badge(label=status, color="green" if status == "completed" else "gray"),
+            ]),
+            on_click=Call(function="video_status", video_id=sid),
+        ))
 
     return Stack(children=[
+        # Script writer form
         Section(
-            title="Script Writer",
+            title="Write New Script",
             children=[
-                Form(
-                    action="write_script_form",
-                    submit_label="Write Script",
-                    children=[
-                        Input(
-                            placeholder="Topic (e.g., Why NVMe hosting is 10x faster)",
-                            param_name="topic",
-                        ),
-                        Stack(direction="h", children=[
-                            Stack(children=[
-                                Select(
-                                    options=[
-                                        {"value": "1", "label": "Tier 1 -- Simple (hook-body-CTA)"},
-                                        {"value": "2", "label": "Tier 2 -- Advanced (setup-stress-payoff)"},
-                                    ],
-                                    value="1",
-                                    param_name="tier",
-                                ),
-                            ]),
-                            Stack(children=[
-                                Select(
-                                    options=[
-                                        {"value": "viral", "label": "Viral"},
-                                        {"value": "pitch", "label": "Pitch"},
-                                        {"value": "false_statement", "label": "False Statement"},
-                                    ],
-                                    value="viral",
-                                    param_name="format_type",
-                                ),
-                            ]),
-                            Stack(children=[
-                                Select(
-                                    options=[
-                                        {"value": "short", "label": "Short (60s)"},
-                                        {"value": "medium", "label": "Medium (3-5 min)"},
-                                        {"value": "long", "label": "Long (10+ min)"},
-                                    ],
-                                    value="short",
-                                    param_name="duration",
-                                ),
-                            ]),
-                        ]),
-                    ],
+                Input(
+                    placeholder="Topic (e.g., Why NVMe hosting is 10x faster)",
+                    param_name="topic",
                 ),
-                Stack(direction="h", children=[
+                Stack(direction="h", gap=3, children=[
+                    Select(
+                        options=[
+                            {"value": "1", "label": "Tier 1 -- Simple (hook-body-CTA)"},
+                            {"value": "2", "label": "Tier 2 -- Advanced (setup-stress-payoff)"},
+                        ],
+                        value="1",
+                        param_name="tier",
+                    ),
+                    Select(
+                        options=[
+                            {"value": "viral", "label": "Viral"},
+                            {"value": "pitch", "label": "Pitch"},
+                            {"value": "false_statement", "label": "False Statement"},
+                        ],
+                        value="viral",
+                        param_name="format_type",
+                    ),
+                    Select(
+                        options=[
+                            {"value": "short", "label": "Short (60s)"},
+                            {"value": "medium", "label": "Medium (3-5 min)"},
+                            {"value": "long", "label": "Long (10+ min)"},
+                        ],
+                        value="short",
+                        param_name="duration",
+                    ),
+                ]),
+                Divider(),
+                Stack(direction="h", gap=3, children=[
                     Button(
                         label="Write Script",
                         variant="primary",
@@ -444,65 +553,34 @@ def _build_scripts_tab(scripts):
 
         Divider(),
 
-        # Script output
-        Section(
-            title="Script Preview",
-            collapsible=True,
-            children=[
-                Card(
-                    title="Output",
-                    content=Markdown(content="_No script generated yet. Use the form above to create one._"),
-                ),
-                Divider(),
-                Stack(direction="h", children=[
-                    Input(
-                        placeholder="Rewrite instructions (e.g., make it more casual, add humor)...",
-                        param_name="rewrite_prompt",
-                    ),
-                    Button(
-                        label="Rewrite",
-                        variant="secondary",
-                        icon="refresh-cw",
-                        on_click=Call(function="write_script", tier=1),
-                    ),
-                ]),
-            ],
-        ),
-
-        Divider(),
-
-        # Video generation from script
+        # Render video section
         Section(
             title="Render Video",
             collapsible=True,
             children=[
-                Stack(direction="h", children=[
-                    Stack(children=[
-                        Select(
-                            options=[
-                                {"value": "portrait", "label": "Portrait (9:16)"},
-                                {"value": "landscape", "label": "Landscape (16:9)"},
-                                {"value": "square", "label": "Square (1:1)"},
-                            ],
-                            value="portrait",
-                            param_name="dimension",
-                            placeholder="Video Dimension",
-                        ),
-                    ]),
-                    Stack(children=[
-                        Select(
-                            options=[
-                                {"value": "en", "label": "English"},
-                                {"value": "es", "label": "Spanish"},
-                                {"value": "ru", "label": "Russian"},
-                            ],
-                            value="en",
-                            param_name="voice_language",
-                            placeholder="Voice Language",
-                        ),
-                    ]),
+                Stack(direction="h", gap=3, children=[
+                    Select(
+                        options=[
+                            {"value": "portrait", "label": "Portrait (9:16)"},
+                            {"value": "landscape", "label": "Landscape (16:9)"},
+                            {"value": "square", "label": "Square (1:1)"},
+                        ],
+                        value="portrait",
+                        param_name="dimension",
+                        placeholder="Dimension",
+                    ),
+                    Select(
+                        options=[
+                            {"value": "en", "label": "English"},
+                            {"value": "es", "label": "Spanish"},
+                            {"value": "ru", "label": "Russian"},
+                        ],
+                        value="en",
+                        param_name="voice_language",
+                        placeholder="Voice",
+                    ),
                 ]),
-                Stack(direction="h", children=[
+                Stack(direction="h", gap=3, children=[
                     Button(
                         label="Generate Video",
                         variant="primary",
@@ -522,31 +600,17 @@ def _build_scripts_tab(scripts):
                         on_click=Call(function="list_voices", language="en"),
                     ),
                 ]),
-                Progress(
-                    value=0,
-                    label="Waiting for generation...",
-                    variant="bar",
-                ),
             ],
         ),
 
         Divider(),
 
-        # Scripts list
+        # Recent scripts
         Section(
-            title=f"Recent Scripts ({len(scripts)})",
+            title=f"Recent Scripts ({len(scripts) if isinstance(scripts, list) else 0})",
             collapsible=True,
             children=[
-                DataTable(
-                    rows=[
-                        {"script_id": sid, "status": "completed"}
-                        for sid in scripts[:10]
-                    ] if scripts else [],
-                    columns=[
-                        DataColumn(key="script_id", label="Script"),
-                        DataColumn(key="status", label="Status"),
-                    ],
-                ) if scripts else Empty(
+                Grid(columns=2, gap=3, children=script_cards) if script_cards else Empty(
                     message="No scripts yet. Write one above!",
                     icon="file-text",
                 ),
@@ -560,9 +624,20 @@ def _build_scripts_tab(scripts):
 # =====================================================
 
 def _build_analytics_tab(videos, completed, metrics, recent_activity):
-    """Analytics tab — performance charts, activity timeline."""
+    """Analytics tab -- stats, chart, activity timeline."""
 
-    # Performance chart
+    metrics_list = metrics if isinstance(metrics, list) else []
+    activity_list = recent_activity if isinstance(recent_activity, list) else []
+
+    # Calculate totals
+    total_words = 0
+    total_duration = 0
+    for v in completed:
+        total_words += v.get("word_count", 0)
+        total_duration += v.get("duration", 0)
+    avg_duration = _format_duration(total_duration // len(completed)) if completed else "--"
+
+    # Chart data
     chart_data = [
         {"name": "Mon", "videos": 0},
         {"name": "Tue", "videos": 0},
@@ -573,9 +648,9 @@ def _build_analytics_tab(videos, completed, metrics, recent_activity):
         {"name": "Sun", "videos": 0},
     ]
 
-    # Activity timeline
+    # Activity timeline items
     activity_items = []
-    for act in (recent_activity or [])[:8]:
+    for act in activity_list[:8]:
         activity_items.append({
             "label": act.get("label", "Activity"),
             "description": act.get("description", ""),
@@ -586,37 +661,72 @@ def _build_analytics_tab(videos, completed, metrics, recent_activity):
         activity_items = [{"label": "No activity yet", "status": "pending"}]
 
     return Stack(children=[
+        # Stats overview
         Stats(children=[
-            Stat(label="Total Videos", value=str(len(videos)), icon="film"),
-            Stat(label="Completed", value=str(len(completed)), icon="check-circle", trend="up" if completed else ""),
-            Stat(label="Tracked", value=str(len(metrics)), icon="bar-chart-2"),
+            Stat(label="Videos Created", value=str(len(videos)), icon="film", color="blue"),
+            Stat(
+                label="Completed",
+                value=str(len(completed)),
+                icon="check-circle",
+                color="green",
+                trend="up" if completed else "",
+            ),
+            Stat(label="Total Words", value=str(total_words), icon="type", color="purple"),
+            Stat(label="Avg Duration", value=avg_duration, icon="clock", color="orange"),
         ]),
 
         Divider(),
 
-        Stack(direction="h", children=[
-            Stack(children=[
-                Section(
-                    title="Videos Created (This Week)",
-                    children=[
-                        Chart(
-                            type="line",
-                            data=chart_data,
-                            x_key="name",
-                            height=200,
-                        ),
-                    ],
-                ),
-            ]),
-            Stack(children=[
-                Section(
-                    title="Recent Activity",
-                    children=[
-                        Timeline(items=activity_items),
-                    ],
-                ),
-            ]),
+        # Chart + Timeline side by side
+        Grid(columns=2, gap=4, children=[
+            Section(
+                title="Videos Created (This Week)",
+                children=[
+                    Chart(
+                        type="line",
+                        data=chart_data,
+                        x_key="name",
+                        height=200,
+                    ),
+                ],
+            ),
+            Section(
+                title="Recent Activity",
+                children=[
+                    Timeline(items=activity_items),
+                ],
+            ),
         ]),
+
+        Divider(),
+
+        # Metrics table
+        Section(
+            title=f"Performance Metrics ({len(metrics_list)})",
+            collapsible=True,
+            children=[
+                DataTable(
+                    rows=[
+                        {
+                            "content": m.get("content_id", ""),
+                            "views": str(m.get("views", 0)),
+                            "retention": f"{m.get('retention', 0)}%",
+                            "ctr": f"{m.get('ctr', 0)}%",
+                        }
+                        for m in metrics_list[:20]
+                    ],
+                    columns=[
+                        DataColumn(key="content", label="Content"),
+                        DataColumn(key="views", label="Views"),
+                        DataColumn(key="retention", label="Retention"),
+                        DataColumn(key="ctr", label="CTR"),
+                    ],
+                ) if metrics_list else Empty(
+                    message="No metrics tracked yet. Publish a video and track its performance.",
+                    icon="bar-chart-2",
+                ),
+            ],
+        ),
     ])
 
 
