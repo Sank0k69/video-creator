@@ -19,9 +19,9 @@ from imperal_sdk.ui import (
 
 
 def register_dashboard(ext):
-    """Register the dashboard panel on the main slot."""
+    """Register the dashboard panel on the center slot (like Mail Client)."""
 
-    @ext.panel("workspace", slot="main", title="Video Creator", icon="film")
+    @ext.panel("workspace", slot="center", title="Video Creator", icon="Film")
     async def workspace_panel(ctx):
         # Load data from store
         # Use get() only — query() causes 307 redirect on Imperal
