@@ -12,7 +12,7 @@ from imperal_sdk.ui import (
     Form, Input, TextArea, Select, Slider, TagInput,
     Timeline, Progress, Alert, Markdown,
     SlideOver, Dialog, Chart, Empty,
-    ListItem, List, KeyValue, Html, Link,
+    ListItem, List, KeyValue, Html, Link, Video,
     Call, Open,
 )
 
@@ -208,7 +208,7 @@ def _build_library_tab(videos, completed, processing, failed):
             card_children.append(Image(src=thumb, alt=title, width="100%", object_fit="cover"))
         if video_url:
             card_children.append(
-                Html(content=f'<video src="{video_url}" controls style="width:100%;border-radius:8px;margin-top:8px"></video>')
+                Video(src=video_url, poster=thumb, controls=True, width="100%")
             )
             card_children.append(
                 Link(label="Open in new tab", href=video_url, on_click=Open(url=video_url))
