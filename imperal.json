@@ -1,7 +1,16 @@
 {
   "app_id": "video-creator",
   "version": "2.0.1",
-  "capabilities": [],
+  "capabilities": [
+    "Video Script Writing",
+    "Hook Generation",
+    "AI Content Ideas",
+    "Caption Writing",
+    "CTA & Sales Copy",
+    "Email Sequences",
+    "Funnel Copy",
+    "Launch Planning"
+  ],
   "tools": [
     {
       "name": "video_creator",
